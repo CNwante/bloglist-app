@@ -101,6 +101,39 @@ test('missing url property responds with the status code 400 Bad Request', async
   await api.post('/api/blogs').send(newBlog).expect(400)
 })
 
+test('deletion of a note succeeds with status code 204 if id is valid', async () => {
+  const blogsAtStart = await api.get('/api/blogs')
+  const blogToDelete = blogsAtStart.body[0]
+
+  await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204)
+
+  const blogsAtEnd = await api.get('/api/blogs')
+
+  const ids = blogsAtEnd.body.map((b) => b.id)
+  assert(!ids.includes(blogToDelete.id))
+
+  assert.strictEqual(blogsAtEnd.body.length, blogsAtStart.body.length - 1)
+})
+
+test('updates the information of an individual blog post', async () => {
+  const blogsAtStart = await api.get('/api/blogs')
+  const blogToUpdate = blogsAtStart.body[0]
+
+  const updatedBlog = {
+    ...blogToUpdate,
+    likes: blogToUpdate.likes + 1,
+  }
+
+  await api.put(`/api/blogs/${blogToUpdate.id}`).send(updatedBlog).expect(200)
+
+  const blogsAtEnd = await api.get('/api/blogs')
+  const updatedBlogFromDb = blogsAtEnd.body.find(
+    (blog) => blog.id === blogToUpdate.id,
+  )
+
+  assert.strictEqual(updatedBlogFromDb.likes, updatedBlog.likes)
+})
+
 after(async () => {
   await mongoose.connection.close()
 })
